@@ -1,0 +1,57 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: prowlarr-config
+  namespace: media
+spec:
+  accessModes: [ReadWriteOnce]
+  storageClassName: local-path
+  resources:
+    requests:
+      storage: 1Gi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: prowlarr
+  namespace: media
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate                      # SQLite config on RWO volume + hostPort
+  selector:
+    matchLabels: { app: prowlarr }
+  template:
+    metadata:
+      labels: { app: prowlarr }
+    spec:
+      enableServiceLinks: false
+      containers:
+        - name: prowlarr
+          image: lscr.io/linuxserver/prowlarr:latest
+          env:
+            - { name: PUID, value: "1000" }
+            - { name: PGID, value: "1000" }
+            - { name: TZ, value: "Africa/Casablanca" }
+          ports:
+            - containerPort: 9696
+              hostPort: 9696                    # all interfaces = LAN + Tailscale
+          resources:
+            requests: { memory: 160Mi }
+            limits: { memory: 512Mi }
+          volumeMounts:
+            - { name: config, mountPath: /config }
+      volumes:
+        - name: config
+          persistentVolumeClaim: { claimName: prowlarr-config }
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: prowlarr
+  namespace: media
+spec:
+  selector: { app: prowlarr }
+  ports:
+    - port: 9696
+      targetPort: 9696

@@ -1,0 +1,8 @@
+# Real secrets and env files: only the *.example versions are committed
+.env
+**/.env
+ntfy/server.yml
+k8s.env
+
+# Database dumps from migrations
+*.dump

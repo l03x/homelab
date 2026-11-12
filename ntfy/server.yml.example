@@ -1,0 +1,17 @@
+# ntfy server config. Copy to server.yml and adjust.
+# Every path must be under /var/lib/ntfy, which is the persistent volume.
+base-url: "https://ntfy.example.com"
+listen-http: ":80"
+behind-proxy: true
+
+cache-file: "/var/lib/ntfy/cache.db"
+attachment-cache-dir: "/var/lib/ntfy/attachments"
+
+auth-file: "/var/lib/ntfy/user.db"
+auth-default-access: "deny-all"
+
+# Web push (optional). Generate keys with: ntfy webpush keys
+# web-push-public-key: ""
+# web-push-private-key: ""
+# web-push-file: "/var/lib/ntfy/webpush.db"
+# web-push-email-address: ""

@@ -1,0 +1,7 @@
+# /etc/rancher/k3s/config.yaml on the server (ilyass-server).
+# Traefik and ServiceLB are disabled at install time (see README); cloudflared handles ingress.
+disable:
+  - metrics-server              # Prometheus in monitoring/ replaces it for Freelens
+tls-san:                        # extra names on the API server certificate (for Freelens over Tailscale)
+  - "100.81.17.27"
+  - "ilyass-server.taila311b0.ts.net"

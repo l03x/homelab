@@ -1,0 +1,43 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ntfy
+  namespace: ntfy
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate                      # SQLite on an RWO volume + hostPort
+  selector:
+    matchLabels: { app: ntfy }
+  template:
+    metadata:
+      labels: { app: ntfy }
+    spec:
+      enableServiceLinks: false
+      containers:
+        - name: ntfy
+          image: binwiederhier/ntfy:v2.16.0   # pinned; bump deliberately
+          args: ["serve"]
+          ports:
+            - containerPort: 80
+              hostPort: 8090
+              hostIP: 127.0.0.1               # the tunnel reaches it at localhost:8090
+          securityContext:
+            allowPrivilegeEscalation: false
+          resources:
+            requests: { memory: 32Mi }
+            limits: { memory: 128Mi }
+          volumeMounts:
+            - name: config
+              mountPath: /etc/ntfy/server.yml
+              subPath: server.yml
+              readOnly: true
+            - name: data
+              mountPath: /var/lib/ntfy
+      volumes:
+        - name: config
+          secret:
+            secretName: ntfy-config           # generated from server.yml by kustomize
+        - name: data
+          persistentVolumeClaim:
+            claimName: data

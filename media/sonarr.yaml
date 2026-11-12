@@ -1,0 +1,60 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: sonarr-config
+  namespace: media
+spec:
+  accessModes: [ReadWriteOnce]
+  storageClassName: local-path
+  resources:
+    requests:
+      storage: 2Gi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: sonarr
+  namespace: media
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate                      # SQLite config on RWO volume + hostPort
+  selector:
+    matchLabels: { app: sonarr }
+  template:
+    metadata:
+      labels: { app: sonarr }
+    spec:
+      enableServiceLinks: false
+      containers:
+        - name: sonarr
+          image: lscr.io/linuxserver/sonarr:latest
+          env:
+            - { name: PUID, value: "1000" }
+            - { name: PGID, value: "1000" }
+            - { name: TZ, value: "Africa/Casablanca" }
+          ports:
+            - containerPort: 8989
+              hostPort: 8989                    # all interfaces = LAN + Tailscale
+          resources:
+            requests: { memory: 180Mi }
+            limits: { memory: 512Mi }
+          volumeMounts:
+            - { name: config, mountPath: /config }
+            - { name: data0, mountPath: /data }
+      volumes:
+        - name: config
+          persistentVolumeClaim: { claimName: sonarr-config }
+        - name: data0
+          hostPath: { path: /srv/data, type: Directory }
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: sonarr
+  namespace: media
+spec:
+  selector: { app: sonarr }
+  ports:
+    - port: 8989
+      targetPort: 8989

@@ -1,0 +1,33 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cloudflared
+  namespace: cloudflared
+spec:
+  replicas: 1
+  selector:
+    matchLabels: { app: cloudflared }
+  template:
+    metadata:
+      labels: { app: cloudflared }
+    spec:
+      hostNetwork: true                     # tunnel routes point at localhost:<port>
+      enableServiceLinks: false
+      automountServiceAccountToken: false
+      containers:
+        - name: cloudflared
+          image: cloudflare/cloudflared:latest   # pin a release tag
+          args: ["tunnel", "--no-autoupdate", "--metrics", "127.0.0.1:20241", "run"]
+          envFrom:
+            - secretRef:
+                name: tunnel-token
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 65532
+            readOnlyRootFilesystem: true
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: [ALL]
+          resources:
+            requests: { memory: 32Mi }
+            limits: { memory: 128Mi }

@@ -1,0 +1,59 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: app-data
+  namespace: reactive-resume
+spec:
+  accessModes: [ReadWriteOnce]
+  storageClassName: local-path
+  resources:
+    requests:
+      storage: 1Gi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: reactive-resume
+  namespace: reactive-resume
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate                      # hostPort + RWO volume
+  selector:
+    matchLabels: { app: reactive-resume }
+  template:
+    metadata:
+      labels: { app: reactive-resume }
+    spec:
+      enableServiceLinks: false
+      initContainers:
+        - name: wait-for-deps
+          image: busybox:1.36
+          command: ["sh", "-c", "until nc -z postgres 5432 && nc -z redis 6379 && nc -z seaweedfs 8333; do sleep 2; done"]
+      containers:
+        - name: app
+          image: ghcr.io/reactive-resume/reactive-resume:latest   # pin a vX.Y.Z tag
+          envFrom:
+            - secretRef:
+                name: rr-env
+          ports:
+            - containerPort: 3000
+              hostPort: 4000
+              hostIP: 127.0.0.1           # the tunnel reaches it at localhost:4000
+          readinessProbe:
+            httpGet: { path: /api/health, port: 3000 }
+            periodSeconds: 15
+          livenessProbe:
+            httpGet: { path: /api/health, port: 3000 }
+            initialDelaySeconds: 60
+            periodSeconds: 30
+          resources:
+            requests: { memory: 192Mi }
+            limits: { memory: 768Mi }
+          volumeMounts:
+            - name: data
+              mountPath: /app/data
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: app-data

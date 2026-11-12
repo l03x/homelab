@@ -1,0 +1,35 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: claude-api
+  namespace: claude-api
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate                      # RWO volume + hostPort
+  selector:
+    matchLabels: { app: claude-api }
+  template:
+    metadata:
+      labels: { app: claude-api }
+    spec:
+      enableServiceLinks: false
+      containers:
+        - name: api
+          image: ghcr.io/l03x/claude-headless-api:latest
+          ports:
+            - containerPort: 8000
+              hostPort: 8000
+              hostIP: 127.0.0.1           # remove hostPort/hostIP if only in-cluster apps use it
+          envFrom:
+            - secretRef:
+                name: claude-api-env
+          resources:
+            requests: { memory: 256Mi }
+          volumeMounts:
+            - name: data
+              mountPath: /data          # holds the Claude login
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: claude-api-data

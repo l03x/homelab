@@ -1,0 +1,42 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: jupyter
+  namespace: jupyter
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate                      # RWO volume + hostPort
+  selector:
+    matchLabels: { app: jupyter }
+  template:
+    metadata:
+      labels: { app: jupyter }
+    spec:
+      enableServiceLinks: false         # otherwise k8s injects JUPYTER_PORT=tcp://... and Jupyter crashes
+      securityContext:
+        fsGroup: 100                    # jovyan's group
+      containers:
+        - name: jupyter
+          image: quay.io/jupyter/minimal-notebook:python-3.12
+          ports:
+            - containerPort: 8888
+              hostPort: 8888
+              hostIP: 127.0.0.1
+          envFrom:
+            - secretRef:
+                name: jupyter-token
+          env:
+            - name: PATH
+              value: /home/jovyan/.local/bin:/opt/conda/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+            - name: PIP_USER
+              value: "1"
+          resources:
+            requests: { memory: 256Mi }
+          volumeMounts:
+            - name: home
+              mountPath: /home/jovyan   # work/ lives inside this volume
+      volumes:
+        - name: home
+          persistentVolumeClaim:
+            claimName: home

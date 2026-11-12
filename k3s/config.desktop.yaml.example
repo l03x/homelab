@@ -1,0 +1,6 @@
+# /etc/rancher/k3s/config.yaml on the desktop.
+# Default eviction thresholds (15% free on the image filesystem) taint the node with
+# disk-pressure on a mostly-full disk. Lower them for a personal machine.
+kubelet-arg:
+  - "eviction-hard=imagefs.available<5%,nodefs.available<5%"
+  - "eviction-minimum-reclaim=imagefs.available=1Gi,nodefs.available=1Gi"

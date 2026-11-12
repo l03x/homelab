@@ -1,0 +1,60 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: jellyfin-config
+  namespace: media
+spec:
+  accessModes: [ReadWriteOnce]
+  storageClassName: local-path
+  resources:
+    requests:
+      storage: 10Gi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: jellyfin
+  namespace: media
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate                      # SQLite config on RWO volume + hostPort
+  selector:
+    matchLabels: { app: jellyfin }
+  template:
+    metadata:
+      labels: { app: jellyfin }
+    spec:
+      enableServiceLinks: false
+      containers:
+        - name: jellyfin
+          image: lscr.io/linuxserver/jellyfin:latest
+          env:
+            - { name: PUID, value: "1000" }
+            - { name: PGID, value: "1000" }
+            - { name: TZ, value: "Africa/Casablanca" }
+          ports:
+            - containerPort: 8096
+              hostPort: 8096                    # all interfaces = LAN + Tailscale
+          resources:
+            requests: { memory: 300Mi }
+            limits: { memory: 1Gi }
+          volumeMounts:
+            - { name: config, mountPath: /config }
+            - { name: data0, mountPath: /data/media }
+      volumes:
+        - name: config
+          persistentVolumeClaim: { claimName: jellyfin-config }
+        - name: data0
+          hostPath: { path: /srv/data/media, type: Directory }
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: jellyfin
+  namespace: media
+spec:
+  selector: { app: jellyfin }
+  ports:
+    - port: 8096
+      targetPort: 8096

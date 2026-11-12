@@ -1,0 +1,27 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: headlamp
+  namespace: kube-system
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate                      # hostPort: the old pod must free it first
+  selector:
+    matchLabels: { app: headlamp }
+  template:
+    metadata:
+      labels: { app: headlamp }
+    spec:
+      serviceAccountName: headlamp
+      enableServiceLinks: false
+      containers:
+        - name: headlamp
+          image: ghcr.io/headlamp-k8s/headlamp:latest
+          args:
+            - "-in-cluster"
+            - "-plugins-dir=/headlamp/plugins"
+          ports:
+            - containerPort: 4466
+              hostPort: 4466
+              hostIP: 192.168.11.200          # ONE entry per port; see README

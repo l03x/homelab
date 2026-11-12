@@ -1,0 +1,45 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: kube-state-metrics
+  namespace: lens-metrics
+spec:
+  replicas: 1
+  selector:
+    matchLabels: { app: kube-state-metrics }
+  template:
+    metadata:
+      labels: { app: kube-state-metrics }
+    spec:
+      serviceAccountName: kube-state-metrics
+      enableServiceLinks: false
+      containers:
+        - name: kube-state-metrics
+          image: registry.k8s.io/kube-state-metrics/kube-state-metrics:v2.15.0
+          args:
+            - --resources=nodes,pods      # only what Freelens charts use
+          ports:
+            - containerPort: 8080
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 65534
+            readOnlyRootFilesystem: true
+            allowPrivilegeEscalation: false
+            capabilities: { drop: [ALL] }
+          readinessProbe:
+            httpGet: { path: /healthz, port: 8080 }
+            periodSeconds: 10
+          resources:
+            requests: { memory: 32Mi }
+            limits: { memory: 96Mi }
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: kube-state-metrics
+  namespace: lens-metrics
+spec:
+  selector: { app: kube-state-metrics }
+  ports:
+    - port: 8080
+      targetPort: 8080

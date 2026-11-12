@@ -1,0 +1,49 @@
+# Scrape config. kustomize turns this file into a ConfigMap with a hash suffix,
+# so editing it and re-applying restarts Prometheus automatically.
+global:
+  scrape_interval: 15s        # Freelens queries rate(...[1m]); needs >= 2 samples per minute
+  evaluation_interval: 15s
+scrape_configs:
+  # Pod/container usage, scraped from the kubelet through the API server proxy
+  - job_name: kubernetes-cadvisor
+    scheme: https
+    tls_config:
+      ca_file: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+    authorization:
+      credentials_file: /var/run/secrets/kubernetes.io/serviceaccount/token
+    kubernetes_sd_configs:
+      - role: node
+    relabel_configs:
+      - target_label: __address__
+        replacement: kubernetes.default.svc:443
+      - source_labels: [__meta_kubernetes_node_name]
+        regex: (.+)
+        target_label: __metrics_path__
+        replacement: /api/v1/nodes/$1/proxy/metrics/cadvisor
+      - source_labels: [__meta_kubernetes_node_name]
+        target_label: kubernetes_node
+    metric_relabel_configs:
+      - source_labels: [__name__]
+        regex: container_(cpu_usage_seconds_total|memory_working_set_bytes|memory_usage_bytes|network_receive_bytes_total|network_transmit_bytes_total|fs_reads_bytes_total|fs_writes_bytes_total)
+        action: keep
+  # Node-level CPU/memory/disk
+  - job_name: node-exporter
+    kubernetes_sd_configs:
+      - role: pod
+        namespaces:
+          names: [lens-metrics]
+    relabel_configs:
+      - source_labels: [__meta_kubernetes_pod_label_app]
+        regex: node-exporter
+        action: keep
+      - source_labels: [__meta_kubernetes_pod_node_name]
+        target_label: kubernetes_node
+    metric_relabel_configs:
+      - source_labels: [__name__]
+        regex: node_(cpu_seconds_total|memory_.+|filesystem_(size|avail|free)_bytes|load1|load5|load15|network_(receive|transmit)_bytes_total)
+        action: keep
+  # Capacity, requests, limits, pod counts
+  - job_name: kube-state-metrics
+    honor_labels: true
+    static_configs:
+      - targets: [kube-state-metrics.lens-metrics.svc:8080]
