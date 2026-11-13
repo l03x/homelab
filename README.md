@@ -17,6 +17,7 @@ Each directory is one project, deployable on its own with `kubectl apply -k <dir
 | [umami](umami/) | server | Privacy-friendly web analytics for the portfolio | [README](umami/README.md) |
 | [ntfy](ntfy/) | server | Push notifications (alerts from monitoring and watchers) | [README](ntfy/README.md) |
 | [reactive-resume](reactive-resume/) | server | Resume builder | [README](reactive-resume/README.md) |
+| [n8n](n8n/) | server | Workflow automation (webhooks come in through the tunnel) | [README](n8n/README.md) |
 | [media](media/) | server | Jellyfin and the *arr stack (Sonarr, Radarr, Prowlarr, Bazarr, Seerr, qBittorrent, FlareSolverr) | [README](media/README.md) |
 | [monitoring](monitoring/) | server | Minimal Prometheus for the Freelens charts | [README](monitoring/README.md) |
 | [headlamp](headlamp/) | server | Optional web dashboard (Freelens is the main UI) | [README](headlamp/README.md) |

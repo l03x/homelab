@@ -20,6 +20,7 @@ Expect about 4 `Registered tunnel connection` lines.
 | umami | `http://localhost:3000` |
 | ntfy | `http://localhost:8090` |
 | resume | `http://localhost:4000` |
+| n8n | `http://localhost:5678` |
 
 The tunnel is token-run, so routes live in the dashboard and not in a config file.
 
